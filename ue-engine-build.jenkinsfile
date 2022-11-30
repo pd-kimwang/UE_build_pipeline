@@ -1,10 +1,116 @@
 pipeline {
     agent any
-    stages {
-        stage('build') {
-            steps {
-                echo 'build from jenkins pipeline repo'
-            }
-        }
+
+    parameters {
+            // Dev note: don't use these directly, use `env.VAR`
+            string(
+                name: 'ECR_IMAGE_URL',
+                defaultValue: '598971202176.dkr.ecr.us-west-2.amazonaws.com/pd/build/tools',
+                description: 'url for ecr image'
+            )
+            string(
+                name: 'AWS_ECR_REGION',
+                defaultValue: 'us-west-2',
+                description: 'aws region of the ecr image'
+            )
+
+            AWS_ACCOUNT_ID
+            string(
+                name: '598971202176',
+                defaultValue: '',
+                description: 'aws account id'
+            )
     }
+
+    environment {
+        xxx = 'xx'
+    }
+
+
+    stages {
+/*
+        stage('Build Tools Image') {
+            steps {
+                echo 'Starting build of tools image'
+                script {
+                    def tmpDir = pwd(tmp: true) + "/toolsImage"
+                    dir(tmpDir) {
+                        checkout poll: false, changelog: false, scm: perforce(
+                            credential: 'p4-buildbot',
+                            populate: autoClean(
+                                delete: true, modtime: false,
+                                parallel: [enable: true, minbytes: '0', minfiles: '0', threads: '0'],
+                                pin: '', quiet: true, replace: true, tidy: false
+                            ), // populate
+                            workspace: manualSpec(
+                                charset: 'none', cleanup: false,
+                                name: 'jenkins-tools-${JOB_NAME}-${EXECUTOR_NUMBER}', // will need to modify this
+                                pinHost: false,
+                                spec: clientSpec(
+                                    allwrite: false, backup: true, changeView: '', clobber: true, compress: false,
+                                    line: 'LOCAL', locked: false, modtime: false, rmdir: false, serverID: '',
+                                    streamName: '', type: 'WRITABLE',
+                                    view: '''
+                                        //depot/tools/... //${P4_CLIENT}/tools/...
+                                    '''
+                                ) // spec
+                            ) // workspace
+                        ) // checkout perforce
+
+                        toolsImage = docker.build(
+                            "pd/build/tools:${JOB_BASE_NAME}-${BUILD_ID}",
+                            (
+                                "-f tools/build/docker/common.Dockerfile " +
+                                "--target tools-src " +
+                                "--secret id=gcloud,src='${GCLOUD_SECRET_FILE}' " +
+                                "."
+                            )
+                        ) // docker.build toolsImage
+                    } // dir(tmpDir)
+                }// script
+            } // steps
+
+        } // stage: build tools image
+*/        
+        // need to set environment variables (the ones missing from the docker image)
+        stage('Build Code') {
+            steps {
+                echo 'Starting code build'
+                script {
+                    codeBuildStartDate = (new Date()).format(dateFormat, TimeZone.getTimeZone('UTC'))
+
+                    codeBuildImage = docker.build(
+                        "pd/build/code:${env.BUILD_UID}",
+                        (
+                            "-f tools/build/docker/code-build.Dockerfile " +
+                            "--target code-builder " +
+                            "."
+                        )
+                    )
+
+                    codeBuildEndDate = (new Date()).format(dateFormat, TimeZone.getTimeZone('UTC'))
+                }
+            }
+        } // stage: build code
+
+/*
+        stage('Push Image to ECR') {
+            steps {
+                echo 'Pushing image to ECR'
+                script {
+                    ecrPwd = powershell(script:"(Get-ECRLoginCommand).Password", returnStdout: true).trim()
+                    powershell(script:"docker login --username AWS --password ${ecrPwd} ${ECR_URL}")
+
+                    docker.withRegistry("https://${ECR_URL}") {
+                        buildImage.push()
+                        buildImage.push("latest")
+                    } // docker.withRegistry
+                } // script
+            } // steps
+        } // stage: Push Image to ECR
+*/
+
+    }
+
+
 }
