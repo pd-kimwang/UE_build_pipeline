@@ -16,8 +16,8 @@ pipeline {
 
             AWS_ACCOUNT_ID
             string(
-                name: '598971202176',
-                defaultValue: '',
+                name: 'AWS_ACCOUNT_ID',
+                defaultValue: '598971202176',
                 description: 'aws account id'
             )
     }
