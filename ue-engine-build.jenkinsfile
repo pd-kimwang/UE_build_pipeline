@@ -14,7 +14,6 @@ pipeline {
                 description: 'aws region of the ecr image'
             )
 
-            AWS_ACCOUNT_ID
             string(
                 name: 'AWS_ACCOUNT_ID',
                 defaultValue: '598971202176',
